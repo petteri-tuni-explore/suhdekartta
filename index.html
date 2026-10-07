@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Selainpohjainen ihmissuhdekartta.">
+  <title>Ihmissuhdekartta</title>
+  <style>
+    :root {
+      --ink: #1d2930;
+      --muted: #647177;
+      --paper: #fffdf8;
+      --canvas: #f3f5f1;
+      --line: #dce2da;
+      --accent: #276b5c;
+      --accent-light: #d9eee7;
+      --warm: #e77953;
+      --shadow: 0 14px 35px rgba(31, 51, 43, .1);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+
+    .header {
+      padding: 22px clamp(20px, 5vw, 72px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 253, 248, .92);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 760; font-size: 1.2rem; }
+    .brand-mark {
+      width: 34px; height: 34px; display: grid; place-items: center;
+      border-radius: 11px; color: white; background: var(--accent);
+      font-size: 1.25rem;
+    }
+    .privacy { color: var(--muted); font-size: .88rem; }
+
+    main { width: min(1200px, 100%); margin: 0 auto; padding: clamp(24px, 4vw, 52px) clamp(18px, 4vw, 48px) 64px; }
+    .intro { max-width: 680px; margin-bottom: 30px; }
+    h1 { margin: 0 0 10px; font-size: clamp(2rem, 5vw, 3.45rem); line-height: 1; letter-spacing: -.05em; }
+    .intro p { margin: 0; color: var(--muted); font-size: 1.05rem; line-height: 1.55; }
+
+    .workspace { display: grid; grid-template-columns: minmax(280px, .83fr) minmax(440px, 1.17fr); gap: 24px; align-items: start; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--paper);
+      box-shadow: 0 3px 5px rgba(31, 51, 43, .02), var(--shadow);
+    }
+    .question-card { padding: clamp(22px, 3vw, 34px); }
+    .eyebrow { color: var(--accent); font-size: .76rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+    .progress { height: 7px; margin: 14px 0 27px; overflow: hidden; border-radius: 999px; background: #e8ede8; }
+    .progress > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .2s ease; }
+    #question { min-height: 136px; margin: 0 0 22px; font-family: Georgia, serif; font-size: clamp(1.35rem, 2vw, 1.7rem); font-weight: 500; line-height: 1.25; }
+    label { display: block; margin-bottom: 8px; color: var(--muted); font-size: .88rem; font-weight: 650; }
+    #answer {
+      width: 100%; padding: 13px 14px; border: 1px solid #cbd5cd; border-radius: 10px;
+      color: var(--ink); background: white; font-size: 1rem; outline: none;
+    }
+    #answer:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+    .navigation { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; }
+    .button { padding: 10px 15px; border: 1px solid transparent; border-radius: 9px; font-weight: 700; }
+    .button.secondary { border-color: var(--line); color: var(--ink); background: transparent; }
+    .button.primary { color: white; background: var(--accent); }
+    .button:disabled { opacity: .42; cursor: not-allowed; }
+
+    .map-card { overflow: hidden; }
+    .map-head { padding: 20px 23px 15px; display: flex; justify-content: space-between; gap: 15px; border-bottom: 1px solid var(--line); }
+    .map-head h2 { margin: 0 0 4px; font-size: 1rem; }
+    .map-head p { margin: 0; color: var(--muted); font-size: .82rem; }
+    .map-status { align-self: start; padding: 5px 8px; border-radius: 999px; color: var(--accent); background: var(--accent-light); font-size: .76rem; font-weight: 700; white-space: nowrap; }
+    .map-wrap { min-height: 460px; padding: 20px; overflow: auto; background: radial-gradient(circle at center, #fcfdf9 0, #f2f5ef 75%); }
+    #map { position: relative; width: 100%; min-width: 400px; height: 520px; }
+    .empty-map { position: absolute; inset: 0; display: grid; place-items: center; padding: 30px; color: var(--muted); text-align: center; line-height: 1.5; }
+    .node {
+      position: absolute; z-index: 1; width: 116px; min-height: 56px; padding: 9px 10px;
+      display: grid; place-items: center; border: 1px solid #c9d7cf; border-radius: 14px;
+      color: var(--ink); background: white; box-shadow: 0 4px 10px rgba(31, 51, 43, .08);
+      font-size: .82rem; font-weight: 750; line-height: 1.16; text-align: center; transform: translate(-50%, -50%);
+    }
+    .node.core { width: 100px; min-height: 100px; border: 0; border-radius: 50%; color: white; background: var(--accent); font-size: 1rem; }
+    .node.selected { outline: 3px solid #f6b29d; }
+    .edge { position: absolute; z-index: 0; height: 2px; transform-origin: 0 50%; background: #a8c7ba; }
+    .role-list { padding: 17px 22px 22px; border-top: 1px solid var(--line); }
+    .role-list h3 { margin: 0 0 10px; font-size: .82rem; }
+    #roles { display: flex; flex-wrap: wrap; gap: 7px; }
+    .role {
+      padding: 7px 9px; border: 0; border-radius: 8px; color: #315d52; background: #e7f1ed;
+      font-size: .78rem; text-align: left;
+    }
+    .role:hover, .role:focus-visible { color: white; background: var(--accent); outline: none; }
+    .role.empty { color: var(--muted); background: #f0f1ef; }
+    .footer-actions { display: flex; justify-content: flex-end; margin-top: 15px; }
+    .reset { color: #9f432b; background: transparent; border-color: #efc5b8; }
+
+    @media (max-width: 850px) {
+      .workspace { grid-template-columns: 1fr; }
+      .map-wrap { min-height: 420px; }
+      #map { height: 440px; }
+    }
+    @media (max-width: 520px) {
+      .header { padding-block: 16px; }
+      .privacy { display: none; }
+      #question { min-height: 0; }
+      .map-wrap { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">⌘</span> Ihmissuhdekartta</div>
+    <span class="privacy">Tiedot tallennetaan vain tähän selaimeen.</span>
+  </header>
+
+  <main>
+    <section class="intro">
+      <h1>Ketkä ovat tärkeitä ihmisiäsi?</h1>
+      <p>Vastaa jokaiseen väittämään lyhyesti nimellä tai roolilla, esimerkiksi “äiti”. Kun sama vastaus toistuu, se yhdistyy kartalla yhdeksi ihmiseksi.</p>
+    </section>
+
+    <section class="workspace" aria-label="Ihmissuhdekartan työtila">
+      <section class="card question-card" aria-labelledby="question">
+        <div class="eyebrow" id="counter">Väittämä 1 / 13</div>
+        <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+        <h2 id="question"></h2>
+        <label for="answer">Kuka tai mikä rooli?</label>
+        <input id="answer" type="text" maxlength="60" autocomplete="off" placeholder="Esimerkiksi äiti" />
+        <div class="navigation">
+          <button class="button secondary" id="previous" type="button">Edellinen</button>
+          <button class="button primary" id="next" type="button">Seuraava</button>
+        </div>
+      </section>
+
+      <section class="card map-card" aria-labelledby="map-title">
+        <div class="map-head">
+          <div><h2 id="map-title">Sinun ihmissuhdekarttasi</h2><p>Valitse henkilö nähdäksesi siihen liittyvät väittämät.</p></div>
+          <span class="map-status" id="map-status">Ei vastauksia</span>
+        </div>
+        <div class="map-wrap"><div id="map" aria-live="polite"></div></div>
+        <div class="role-list">
+          <h3 id="roles-title">Väittämät</h3>
+          <div id="roles"><span class="role empty">Vastaa väittämään nähdäksesi yhteydet.</span></div>
+        </div>
+      </section>
+    </section>
+    <div class="footer-actions"><button class="button secondary reset" id="reset" type="button">Tyhjennä kaikki vastaukset</button></div>
+  </main>
+
+  <script>
+    const assertions = [
+      "kun tarvitsen hyvää kuuntelijaa",
+      "saan rakentavaa palautetta suoriutumisestani",
+      "saan tukea, kun tunnen itseni yksinäiseksi tai masentuneeksi",
+      "haastaa minua tekemään parempaa työtä tai elämään paremmin",
+      "vahvistaa kokemustani siitä, että työni on arvokasta ja että minullakin on arvoa",
+      "auttaa minua tunnistamaan ja kehittämään taitojani ja kykyjäni",
+      "voin jakaa rakkautta ja hellyyttä",
+      "auttaa minua ilmaisemaan ja arvostamaan omaa luovuuttani",
+      "voin keskustella työstäni tai opiskelustani",
+      "voin keskustella moraalisista valinnoistani ja arvoistani",
+      "kun minua huolestuttavat tekemäni tai mahdollisesti tekemäni virheet",
+      "voin juhlia elämäni hyviä asioita",
+      "voin kokea yhteenkuuluvuutta ryhmään, johon voimakkaimmin samastun"
+    ];
+    const storageKey = "ihmissuhdekartta-v1";
+    let answers = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    let current = 0;
+    let selectedPerson = "";
+
+    const question = document.querySelector("#question");
+    const answer = document.querySelector("#answer");
+    const counter = document.querySelector("#counter");
+    const progressBar = document.querySelector("#progress-bar");
+    const previous = document.querySelector("#previous");
+    const next = document.querySelector("#next");
+    const map = document.querySelector("#map");
+    const roles = document.querySelector("#roles");
+    const rolesTitle = document.querySelector("#roles-title");
+    const mapStatus = document.querySelector("#map-status");
+
+    function normalized(value) {
+      return value.trim().toLocaleLowerCase("fi-FI");
+    }
+
+    function save() {
+      localStorage.setItem(storageKey, JSON.stringify(answers));
+    }
+
+    function renderQuestion() {
+      counter.textContent = `Väittämä ${current + 1} / ${assertions.length}`;
+      progressBar.style.width = `${((current + 1) / assertions.length) * 100}%`;
+      question.textContent = `Minulla on henkilö, joka ${assertions[current]}.`;
+      answer.value = answers[current] || "";
+      previous.disabled = current === 0;
+      next.textContent = current === assertions.length - 1 ? "Valmis" : "Seuraava";
+    }
+
+    function groups() {
+      const grouped = new Map();
+      answers.forEach((value, index) => {
+        const key = normalized(value || "");
+        if (!key) return;
+        if (!grouped.has(key)) grouped.set(key, { name: value.trim(), indices: [] });
+        grouped.get(key).indices.push(index);
+      });
+      return [...grouped.values()];
+    }
+
+    function line(x1, y1, x2, y2) {
+      const length = Math.hypot(x2 - x1, y2 - y1);
+      const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+      const edge = document.createElement("div");
+      edge.className = "edge";
+      edge.style.width = `${length}px`;
+      edge.style.left = `${x1}px`;
+      edge.style.top = `${y1}px`;
+      edge.style.transform = `rotate(${angle}deg)`;
+      map.append(edge);
+    }
+
+    function showRoles(person) {
+      const group = groups().find((item) => normalized(item.name) === normalized(person));
+      roles.replaceChildren();
+      if (!group) {
+        rolesTitle.textContent = "Väittämät";
+        roles.innerHTML = '<span class="role empty">Vastaa väittämään nähdäksesi yhteydet.</span>';
+        return;
+      }
+      rolesTitle.textContent = `${group.name}: ${group.indices.length} ${group.indices.length === 1 ? "yhteys" : "yhteyttä"}`;
+      group.indices.forEach((index) => {
+        const item = document.createElement("button");
+        item.className = "role";
+        item.type = "button";
+        item.textContent = assertions[index];
+        item.addEventListener("click", () => {
+          current = index;
+          renderQuestion();
+          answer.focus();
+        });
+        roles.append(item);
+      });
+    }
+
+    function renderMap() {
+      const people = groups();
+      map.replaceChildren();
+      if (!people.length) {
+        map.innerHTML = '<p class="empty-map">Kirjoita ensimmäinen nimi tai rooli.<br>Kartta rakentuu automaattisesti.</p>';
+        mapStatus.textContent = "Ei vastauksia";
+        selectedPerson = "";
+        showRoles("");
+        return;
+      }
+
+      mapStatus.textContent = `${people.length} ${people.length === 1 ? "henkilö" : "henkilöä"}`;
+      const width = map.clientWidth;
+      const height = map.clientHeight;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.max(125, Math.min(width, height) / 2 - 92);
+      people.forEach((person, index) => {
+        const angle = -Math.PI / 2 + index * (Math.PI * 2 / people.length);
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        line(centerX, centerY, x, y);
+        const node = document.createElement("button");
+        node.className = `node${normalized(person.name) === normalized(selectedPerson) ? " selected" : ""}`;
+        node.type = "button";
+        node.style.left = `${x}px`;
+        node.style.top = `${y}px`;
+        node.textContent = person.name;
+        node.title = `${person.indices.length} väittämää`;
+        node.addEventListener("click", () => {
+          selectedPerson = person.name;
+          renderMap();
+        });
+        map.append(node);
+      });
+
+      const core = document.createElement("div");
+      core.className = "node core";
+      core.style.left = `${centerX}px`;
+      core.style.top = `${centerY}px`;
+      core.textContent = "Minä";
+      map.append(core);
+      if (!selectedPerson || !people.some((person) => normalized(person.name) === normalized(selectedPerson))) selectedPerson = people[0].name;
+      showRoles(selectedPerson);
+    }
+
+    function storeAnswer() {
+      answers[current] = answer.value.trim();
+      save();
+      renderMap();
+    }
+
+    answer.addEventListener("input", storeAnswer);
+    answer.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        storeAnswer();
+        if (current < assertions.length - 1) {
+          current += 1;
+          renderQuestion();
+          answer.focus();
+        }
+      }
+    });
+    previous.addEventListener("click", () => {
+      storeAnswer();
+      current -= 1;
+      renderQuestion();
+      answer.focus();
+    });
+    next.addEventListener("click", () => {
+      storeAnswer();
+      if (current < assertions.length - 1) {
+        current += 1;
+        renderQuestion();
+        answer.focus();
+      }
+    });
+    document.querySelector("#reset").addEventListener("click", () => {
+      if (!window.confirm("Haluatko varmasti tyhjentää kaikki vastaukset?")) return;
+      answers = [];
+      current = 0;
+      selectedPerson = "";
+      localStorage.removeItem(storageKey);
+      renderQuestion();
+      renderMap();
+      answer.focus();
+    });
+    window.addEventListener("resize", renderMap);
+
+    renderQuestion();
+    renderMap();
+  </script>
+</body>
+</html>

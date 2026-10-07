@@ -137,7 +137,7 @@
       const roleX = Math.max(195, width * .46);
       const personX = width - 72;
       const roleY = (row) => 34 + row * rowHeight;
-      const personY = (person) => 34 + namedPeople.findIndex((name) => normalized(name) === normalized(person)) * ((height - 68) / Math.max(1, namedPeople.length - 1));
+      const personY = (person) => 34 + namedPeople.findIndex((name) => normalized(name) === normalized(person)) * rowHeight;
       answeredPrompts.forEach(({ prompt, index }, row) => {
         const y = roleY(row);
         line(coreX, height / 2, roleX, y);

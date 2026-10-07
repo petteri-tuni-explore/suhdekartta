@@ -69,6 +69,11 @@
       color: var(--ink); background: white; font-size: 1rem; outline: none;
     }
     #answer:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+    .answer-history { margin-top: 14px; }
+    .answer-history p { margin: 0 0 8px; color: var(--muted); font-size: .78rem; font-weight: 650; }
+    #previous-answers { display: flex; flex-wrap: wrap; gap: 7px; }
+    .previous-answer { padding: 6px 9px; border: 1px solid #cfe1d9; border-radius: 999px; color: #315d52; background: #f1f8f4; font-size: .78rem; }
+    .previous-answer:hover, .previous-answer:focus-visible { color: white; background: var(--accent); outline: none; }
     .navigation { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; }
     .button { padding: 10px 15px; border: 1px solid transparent; border-radius: 9px; font-weight: 700; }
     .button.secondary { border-color: var(--line); color: var(--ink); background: transparent; }
@@ -81,17 +86,20 @@
     .map-head p { margin: 0; color: var(--muted); font-size: .82rem; }
     .map-status { align-self: start; padding: 5px 8px; border-radius: 999px; color: var(--accent); background: var(--accent-light); font-size: .76rem; font-weight: 700; white-space: nowrap; }
     .map-wrap { min-height: 460px; padding: 20px; overflow: auto; background: radial-gradient(circle at center, #fcfdf9 0, #f2f5ef 75%); }
-    #map { position: relative; width: 100%; min-width: 400px; height: 520px; }
+    #map { position: relative; width: 100%; min-width: 520px; min-height: 600px; }
     .empty-map { position: absolute; inset: 0; display: grid; place-items: center; padding: 30px; color: var(--muted); text-align: center; line-height: 1.5; }
     .node {
-      position: absolute; z-index: 1; width: 116px; min-height: 56px; padding: 9px 10px;
+      position: absolute; z-index: 1; width: 126px; min-height: 44px; padding: 8px 9px;
       display: grid; place-items: center; border: 1px solid #c9d7cf; border-radius: 14px;
       color: var(--ink); background: white; box-shadow: 0 4px 10px rgba(31, 51, 43, .08);
       font-size: .82rem; font-weight: 750; line-height: 1.16; text-align: center; transform: translate(-50%, -50%);
     }
-    .node.core { width: 100px; min-height: 100px; border: 0; border-radius: 50%; color: white; background: var(--accent); font-size: 1rem; }
+    .node.core { width: 76px; min-height: 76px; border: 0; border-radius: 50%; color: white; background: var(--accent); font-size: 1rem; }
+    .node.role-node { border-color: #eac2b4; color: #873c28; background: #fff3ed; }
+    .node.person-node { border-color: #b5d3c8; color: #1c5b4e; background: #f0f8f4; }
     .node.selected { outline: 3px solid #f6b29d; }
     .edge { position: absolute; z-index: 0; height: 2px; transform-origin: 0 50%; background: #a8c7ba; }
+    .edge.person-edge { background: #e4a58e; }
     .role-list { padding: 17px 22px 22px; border-top: 1px solid var(--line); }
     .role-list h3 { margin: 0 0 10px; font-size: .82rem; }
     #roles { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -107,7 +115,7 @@
     @media (max-width: 850px) {
       .workspace { grid-template-columns: 1fr; }
       .map-wrap { min-height: 420px; }
-      #map { height: 440px; }
+      #map { min-height: 600px; }
     }
     @media (max-width: 520px) {
       .header { padding-block: 16px; }
@@ -126,7 +134,7 @@
   <main>
     <section class="intro">
       <h1>Ketkä ovat tärkeitä ihmisiäsi?</h1>
-      <p>Vastaa jokaiseen väittämään lyhyesti nimellä tai roolilla, esimerkiksi “äiti”. Kun sama vastaus toistuu, se yhdistyy kartalla yhdeksi ihmiseksi.</p>
+      <p>Vastaa jokaiseen väittämään lyhyesti nimellä, esimerkiksi “äiti”. Kartta näyttää yhteydet muodossa Minä → rooli → henkilö.</p>
     </section>
 
     <section class="workspace" aria-label="Ihmissuhdekartan työtila">
@@ -135,7 +143,12 @@
         <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
         <h2 id="question"></h2>
         <label for="answer">Kuka tai mikä rooli?</label>
-        <input id="answer" type="text" maxlength="60" autocomplete="off" placeholder="Esimerkiksi äiti" />
+        <input id="answer" type="text" maxlength="60" autocomplete="off" list="answer-suggestions" placeholder="Esimerkiksi äiti" />
+        <datalist id="answer-suggestions"></datalist>
+        <div class="answer-history" id="answer-history" hidden>
+          <p>Valitse aiempi vastaus</p>
+          <div id="previous-answers"></div>
+        </div>
         <div class="navigation">
           <button class="button secondary" id="previous" type="button">Edellinen</button>
           <button class="button primary" id="next" type="button">Seuraava</button>
@@ -144,12 +157,12 @@
 
       <section class="card map-card" aria-labelledby="map-title">
         <div class="map-head">
-          <div><h2 id="map-title">Sinun ihmissuhdekarttasi</h2><p>Valitse henkilö nähdäksesi siihen liittyvät väittämät.</p></div>
+          <div><h2 id="map-title">Sinun ihmissuhdekarttasi</h2><p>Minä → rooli → henkilö. Valitse rooli siirtyäksesi vastaukseen.</p></div>
           <span class="map-status" id="map-status">Ei vastauksia</span>
         </div>
         <div class="map-wrap"><div id="map" aria-live="polite"></div></div>
         <div class="role-list">
-          <h3 id="roles-title">Väittämät</h3>
+          <h3 id="roles-title">Valittu rooli</h3>
           <div id="roles"><span class="role empty">Vastaa väittämään nähdäksesi yhteydet.</span></div>
         </div>
       </section>
@@ -158,25 +171,25 @@
   </main>
 
   <script>
-    const assertions = [
-      "kun tarvitsen hyvää kuuntelijaa",
-      "saan rakentavaa palautetta suoriutumisestani",
-      "saan tukea, kun tunnen itseni yksinäiseksi tai masentuneeksi",
-      "haastaa minua tekemään parempaa työtä tai elämään paremmin",
-      "vahvistaa kokemustani siitä, että työni on arvokasta ja että minullakin on arvoa",
-      "auttaa minua tunnistamaan ja kehittämään taitojani ja kykyjäni",
-      "voin jakaa rakkautta ja hellyyttä",
-      "auttaa minua ilmaisemaan ja arvostamaan omaa luovuuttani",
-      "voin keskustella työstäni tai opiskelustani",
-      "voin keskustella moraalisista valinnoistani ja arvoistani",
-      "kun minua huolestuttavat tekemäni tai mahdollisesti tekemäni virheet",
-      "voin juhlia elämäni hyviä asioita",
-      "voin kokea yhteenkuuluvuutta ryhmään, johon voimakkaimmin samastun"
+    const prompts = [
+      { question: "kun tarvitsen hyvää kuuntelijaa", role: "kuuntelija" },
+      { question: "saan rakentavaa palautetta suoriutumisestani", role: "kannustaja" },
+      { question: "saan tukea, kun tunnen itseni yksinäiseksi tai masentuneeksi", role: "lohduttaja" },
+      { question: "haastaa minua tekemään parempaa työtä tai elämään paremmin", role: "boostaaja" },
+      { question: "vahvistaa kokemustani siitä, että työni on arvokasta ja että minullakin on arvoa", role: "vahvistaja" },
+      { question: "auttaa minua tunnistamaan ja kehittämään taitojani ja kykyjäni", role: "rohkaisija" },
+      { question: "voin jakaa rakkautta ja hellyyttä", role: "turva" },
+      { question: "auttaa minua ilmaisemaan ja arvostamaan omaa luovuuttani", role: "innostaja" },
+      { question: "voin keskustella työstäni tai opiskelustani", role: "sparraaja" },
+      { question: "voin keskustella moraalisista valinnoistani ja arvoistani", role: "mentori" },
+      { question: "kun minua huolestuttavat tekemäni tai mahdollisesti tekemäni virheet", role: "ripittäjä" },
+      { question: "voin juhlia elämäni hyviä asioita", role: "bilekaveri" },
+      { question: "voin kokea yhteenkuuluvuutta ryhmään, johon voimakkaimmin samastun", role: "samis" }
     ];
     const storageKey = "ihmissuhdekartta-v1";
     let answers = JSON.parse(localStorage.getItem(storageKey) || "[]");
     let current = 0;
-    let selectedPerson = "";
+    let selectedRole = "";
 
     const question = document.querySelector("#question");
     const answer = document.querySelector("#answer");
@@ -188,6 +201,9 @@
     const roles = document.querySelector("#roles");
     const rolesTitle = document.querySelector("#roles-title");
     const mapStatus = document.querySelector("#map-status");
+    const answerHistory = document.querySelector("#answer-history");
+    const previousAnswers = document.querySelector("#previous-answers");
+    const answerSuggestions = document.querySelector("#answer-suggestions");
 
     function normalized(value) {
       return value.trim().toLocaleLowerCase("fi-FI");
@@ -198,30 +214,51 @@
     }
 
     function renderQuestion() {
-      counter.textContent = `Väittämä ${current + 1} / ${assertions.length}`;
-      progressBar.style.width = `${((current + 1) / assertions.length) * 100}%`;
-      question.textContent = `Minulla on henkilö, joka ${assertions[current]}.`;
+      counter.textContent = `Väittämä ${current + 1} / ${prompts.length} · ${prompts[current].role}`;
+      progressBar.style.width = `${((current + 1) / prompts.length) * 100}%`;
+      question.textContent = `Minulla on henkilö, joka ${prompts[current].question}.`;
       answer.value = answers[current] || "";
       previous.disabled = current === 0;
-      next.textContent = current === assertions.length - 1 ? "Valmis" : "Seuraava";
+      next.textContent = current === prompts.length - 1 ? "Valmis" : "Seuraava";
+      renderPreviousAnswers();
     }
 
-    function groups() {
-      const grouped = new Map();
-      answers.forEach((value, index) => {
+    function people() {
+      const unique = new Map();
+      answers.forEach((value) => {
         const key = normalized(value || "");
-        if (!key) return;
-        if (!grouped.has(key)) grouped.set(key, { name: value.trim(), indices: [] });
-        grouped.get(key).indices.push(index);
+        if (key && !unique.has(key)) unique.set(key, value.trim());
       });
-      return [...grouped.values()];
+      return [...unique.values()];
     }
 
-    function line(x1, y1, x2, y2) {
+    function renderPreviousAnswers() {
+      const savedPeople = people();
+      previousAnswers.replaceChildren();
+      answerSuggestions.replaceChildren();
+      answerHistory.hidden = savedPeople.length === 0;
+      savedPeople.forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        answerSuggestions.append(option);
+        const choice = document.createElement("button");
+        choice.className = "previous-answer";
+        choice.type = "button";
+        choice.textContent = name;
+        choice.addEventListener("click", () => {
+          answer.value = name;
+          storeAnswer();
+          answer.focus();
+        });
+        previousAnswers.append(choice);
+      });
+    }
+
+    function line(x1, y1, x2, y2, className = "") {
       const length = Math.hypot(x2 - x1, y2 - y1);
       const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
       const edge = document.createElement("div");
-      edge.className = "edge";
+      edge.className = `edge ${className}`;
       edge.style.width = `${length}px`;
       edge.style.left = `${x1}px`;
       edge.style.top = `${y1}px`;
@@ -229,60 +266,64 @@
       map.append(edge);
     }
 
-    function showRoles(person) {
-      const group = groups().find((item) => normalized(item.name) === normalized(person));
+    function showRole(index) {
       roles.replaceChildren();
-      if (!group) {
-        rolesTitle.textContent = "Väittämät";
+      if (index === undefined) {
+        rolesTitle.textContent = "Valittu rooli";
         roles.innerHTML = '<span class="role empty">Vastaa väittämään nähdäksesi yhteydet.</span>';
         return;
       }
-      rolesTitle.textContent = `${group.name}: ${group.indices.length} ${group.indices.length === 1 ? "yhteys" : "yhteyttä"}`;
-      group.indices.forEach((index) => {
-        const item = document.createElement("button");
-        item.className = "role";
-        item.type = "button";
-        item.textContent = assertions[index];
-        item.addEventListener("click", () => {
-          current = index;
-          renderQuestion();
-          answer.focus();
-        });
-        roles.append(item);
+      const prompt = prompts[index];
+      rolesTitle.textContent = `${prompt.role}: ${answers[index] || "ei vielä vastausta"}`;
+      const item = document.createElement("button");
+      item.className = "role";
+      item.type = "button";
+      item.textContent = prompt.question;
+      item.addEventListener("click", () => {
+        current = index;
+        renderQuestion();
+        answer.focus();
       });
+      roles.append(item);
     }
 
     function renderMap() {
-      const people = groups();
+      const namedPeople = people();
       map.replaceChildren();
-      if (!people.length) {
+      if (!namedPeople.length) {
         map.innerHTML = '<p class="empty-map">Kirjoita ensimmäinen nimi tai rooli.<br>Kartta rakentuu automaattisesti.</p>';
         mapStatus.textContent = "Ei vastauksia";
-        selectedPerson = "";
-        showRoles("");
+        selectedRole = "";
+        showRole();
         return;
       }
 
-      mapStatus.textContent = `${people.length} ${people.length === 1 ? "henkilö" : "henkilöä"}`;
+      mapStatus.textContent = `${namedPeople.length} ${namedPeople.length === 1 ? "henkilö" : "henkilöä"}`;
       const width = map.clientWidth;
-      const height = map.clientHeight;
-      const centerX = width / 2;
-      const centerY = height / 2;
-      const radius = Math.max(125, Math.min(width, height) / 2 - 92);
-      people.forEach((person, index) => {
-        const angle = -Math.PI / 2 + index * (Math.PI * 2 / people.length);
-        const x = centerX + Math.cos(angle) * radius;
-        const y = centerY + Math.sin(angle) * radius;
-        line(centerX, centerY, x, y);
+      const rowHeight = 56;
+      const answeredPrompts = prompts
+        .map((prompt, index) => ({ prompt, index }))
+        .filter(({ index }) => answers[index]?.trim());
+      const height = Math.max(600, answeredPrompts.length * rowHeight + 60);
+      map.style.height = `${height}px`;
+      const coreX = 54;
+      const roleX = Math.max(195, width * .46);
+      const personX = width - 72;
+      const roleY = (row) => 34 + row * rowHeight;
+      const personY = (person) => 34 + namedPeople.findIndex((name) => normalized(name) === normalized(person)) * ((height - 68) / Math.max(1, namedPeople.length - 1));
+      answeredPrompts.forEach(({ prompt, index }, row) => {
+        const y = roleY(row);
+        line(coreX, height / 2, roleX, y);
+        line(roleX, y, personX, personY(answers[index]), "person-edge");
         const node = document.createElement("button");
-        node.className = `node${normalized(person.name) === normalized(selectedPerson) ? " selected" : ""}`;
+        node.className = `node role-node${selectedRole === index ? " selected" : ""}`;
         node.type = "button";
-        node.style.left = `${x}px`;
+        node.style.left = `${roleX}px`;
         node.style.top = `${y}px`;
-        node.textContent = person.name;
-        node.title = `${person.indices.length} väittämää`;
+        node.textContent = prompt.role;
+        node.title = prompt.question;
         node.addEventListener("click", () => {
-          selectedPerson = person.name;
+          selectedRole = index;
           renderMap();
         });
         map.append(node);
@@ -290,17 +331,26 @@
 
       const core = document.createElement("div");
       core.className = "node core";
-      core.style.left = `${centerX}px`;
-      core.style.top = `${centerY}px`;
+      core.style.left = `${coreX}px`;
+      core.style.top = `${height / 2}px`;
       core.textContent = "Minä";
       map.append(core);
-      if (!selectedPerson || !people.some((person) => normalized(person.name) === normalized(selectedPerson))) selectedPerson = people[0].name;
-      showRoles(selectedPerson);
+      namedPeople.forEach((person) => {
+        const node = document.createElement("div");
+        node.className = "node person-node";
+        node.style.left = `${personX}px`;
+        node.style.top = `${personY(person)}px`;
+        node.textContent = person;
+        map.append(node);
+      });
+      if (selectedRole === "" || !answers[selectedRole]?.trim()) selectedRole = answers.findIndex((value) => value?.trim());
+      showRole(selectedRole);
     }
 
     function storeAnswer() {
       answers[current] = answer.value.trim();
       save();
+      renderPreviousAnswers();
       renderMap();
     }
 
@@ -309,7 +359,7 @@
       if (event.key === "Enter") {
         event.preventDefault();
         storeAnswer();
-        if (current < assertions.length - 1) {
+        if (current < prompts.length - 1) {
           current += 1;
           renderQuestion();
           answer.focus();
@@ -324,7 +374,7 @@
     });
     next.addEventListener("click", () => {
       storeAnswer();
-      if (current < assertions.length - 1) {
+      if (current < prompts.length - 1) {
         current += 1;
         renderQuestion();
         answer.focus();
@@ -334,7 +384,7 @@
       if (!window.confirm("Haluatko varmasti tyhjentää kaikki vastaukset?")) return;
       answers = [];
       current = 0;
-      selectedPerson = "";
+      selectedRole = "";
       localStorage.removeItem(storageKey);
       renderQuestion();
       renderMap();

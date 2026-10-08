@@ -1,17 +1,17 @@
     const prompts = [
       { question: "kun tarvitsen hyvää kuuntelijaa", role: "kuuntelija" },
-      { question: "saan rakentavaa palautetta suoriutumisestani", role: "kannustaja" },
-      { question: "saan tukea, kun tunnen itseni yksinäiseksi tai masentuneeksi", role: "lohduttaja" },
-      { question: "haastaa minua tekemään parempaa työtä tai elämään paremmin", role: "boostaaja" },
-      { question: "vahvistaa kokemustani siitä, että työni on arvokasta ja että minullakin on arvoa", role: "vahvistaja" },
-      { question: "auttaa minua tunnistamaan ja kehittämään taitojani ja kykyjäni", role: "rohkaisija" },
-      { question: "voin jakaa rakkautta ja hellyyttä", role: "turva" },
-      { question: "auttaa minua ilmaisemaan ja arvostamaan omaa luovuuttani", role: "innostaja" },
-      { question: "voin keskustella työstäni tai opiskelustani", role: "sparraaja" },
-      { question: "voin keskustella moraalisista valinnoistani ja arvoistani", role: "mentori" },
-      { question: "kun minua huolestuttavat tekemäni tai mahdollisesti tekemäni virheet", role: "ripittäjä" },
-      { question: "voin juhlia elämäni hyviä asioita", role: "bilekaveri" },
-      { question: "voin kokea yhteenkuuluvuutta ryhmään, johon voimakkaimmin samastun", role: "samis" }
+      { question: "jolta saan rakentavaa palautetta suoriutumisestani", role: "kannustaja" },
+      { question: "jolta saan tukea, kun tunnen itseni yksinäiseksi tai masentuneeksi", role: "lohduttaja" },
+      { question: "joka haastaa minua tekemään parempaa työtä tai elämään paremmin", role: "boostaaja" },
+      { question: "joka vahvistaa kokemustani siitä, että työni on arvokasta ja että minullakin on arvoa", role: "vahvistaja" },
+      { question: "joka auttaa minua tunnistamaan ja kehittämään taitojani ja kykyjäni", role: "rohkaisija" },
+      { question: "jonka kanssa voin jakaa rakkautta ja hellyyttä", role: "turva" },
+      { question: "joka auttaa minua ilmaisemaan ja arvostamaan omaa luovuuttani", role: "innostaja" },
+      { question: "jonka kanssa voin keskustella työstäni tai opiskelustani", role: "sparraaja" },
+      { question: "jonka kanssavoin keskustella moraalisista valinnoistani ja arvoistani", role: "mentori" },
+      { question: "joka auttaa, kun minua huolestuttavat tekemäni tai mahdollisesti tekemäni virheet", role: "ripittäjä" },
+      { question: "jonka kanssa voin juhlia elämäni hyviä asioita", role: "bilekaveri" },
+      { question: "jonka kanssa voin kokea yhteenkuuluvuutta ryhmään, johon voimakkaimmin samastun", role: "samis" }
     ];
     const storageKey = "ihmissuhdekartta-v1";
     let answers = JSON.parse(localStorage.getItem(storageKey) || "[]");
@@ -43,7 +43,7 @@
     function renderQuestion() {
       counter.textContent = `Väittämä ${current + 1} / ${prompts.length} · ${prompts[current].role}`;
       progressBar.style.width = `${((current + 1) / prompts.length) * 100}%`;
-      question.textContent = `Minulla on henkilö, joka ${prompts[current].question}.`;
+      question.textContent = `Minulla on henkilö ...  ${prompts[current].question}.`;
       answer.value = answers[current] || "";
       previous.disabled = current === 0;
       next.textContent = current === prompts.length - 1 ? "Valmis" : "Seuraava";
